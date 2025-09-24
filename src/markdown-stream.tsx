@@ -5,7 +5,7 @@ import { toHast } from 'mdast-util-to-hast'
 import type { Handler } from 'mdast-util-to-hast'
 import { toJsxRuntime } from 'hast-util-to-jsx-runtime'
 import type { Properties as HastProperties } from 'hast'
-import type { Root } from 'npm:@types/mdast'
+import type { Root } from 'mdast'
 import type {
   ContainerDirective,
   LeafDirective,

@@ -4,7 +4,9 @@
     "jsr:@aireone/deno-lint-curly@*": "0.2.0",
     "jsr:@std/assert@^1.0.14": "1.0.14",
     "jsr:@std/internal@^1.0.10": "1.0.10",
+    "npm:@types/hast@^3.0.4": "3.0.4",
     "npm:@types/mdast@*": "4.0.4",
+    "npm:@types/mdast@^4.0.4": "4.0.4",
     "npm:@types/node@*": "24.2.0",
     "npm:@types/react-dom@^19.1.9": "19.1.9_@types+react@19.1.13",
     "npm:@types/react@^19.1.13": "19.1.13",
@@ -14,6 +16,7 @@
     "npm:hast@1": "1.0.0",
     "npm:mdast-util-directive@^3.1.0": "3.1.0",
     "npm:mdast-util-to-hast@^13.2.0": "13.2.0",
+    "npm:mdast@3": "3.0.0",
     "npm:react-dom@^19.1.1": "19.1.1_react@19.1.1",
     "npm:react@^19.1.1": "19.1.1",
     "npm:remark-directive@4": "4.0.0",
@@ -696,6 +699,10 @@
         "@types/mdast"
       ]
     },
+    "mdast@3.0.0": {
+      "integrity": "sha512-xySmf8g4fPKMeC07jXGz971EkLbWAJ83s4US2Tj9lEdnZ142UP5grN73H1Xd3HzrdbU5o9GYYP/y8F9ZSwLE9g==",
+      "deprecated": true
+    },
     "micromark-core-commonmark@2.0.3": {
       "integrity": "sha512-RDBrHEMSxVFLg6xvnXmb1Ayr2WzLAWjeSATAoxwKYJV94TeNavgoIdA0a9ytzDSVzBy2YKFK+emCPOEibLeCrg==",
       "dependencies": [
@@ -1120,6 +1127,8 @@
     ],
     "packageJson": {
       "dependencies": [
+        "npm:@types/hast@^3.0.4",
+        "npm:@types/mdast@^4.0.4",
         "npm:@types/react-dom@^19.1.9",
         "npm:@types/react@^19.1.13",
         "npm:@vitejs/plugin-react-swc@^4.1.0",
@@ -1128,6 +1137,7 @@
         "npm:hast@1",
         "npm:mdast-util-directive@^3.1.0",
         "npm:mdast-util-to-hast@^13.2.0",
+        "npm:mdast@3",
         "npm:react-dom@^19.1.1",
         "npm:react@^19.1.1",
         "npm:remark-directive@4",
