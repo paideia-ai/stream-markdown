@@ -2,8 +2,15 @@ import { Fragment, memo, useEffect, useReducer, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { Fragment as JsxFragment, jsx, jsxs } from 'react/jsx-runtime'
 import { toHast } from 'mdast-util-to-hast'
+import type { Handler } from 'mdast-util-to-hast'
 import { toJsxRuntime } from 'hast-util-to-jsx-runtime'
+import type { Properties as HastProperties } from 'hast'
 import type { Root } from 'npm:@types/mdast'
+import type {
+  ContainerDirective,
+  LeafDirective,
+  TextDirective,
+} from 'mdast-util-directive'
 
 import {
   createSession,
@@ -15,6 +22,7 @@ import {
 type CommonRenderers = {
   renderBlock?: (block: MarkdownBlock, index: number) => ReactNode
   renderBuffer?: (block: MarkdownBlock | null) => ReactNode
+  renderDirective?: MarkdownDirectiveRenderer
 }
 
 type StreamingProps = {
@@ -50,6 +58,23 @@ type ApplyResult = {
   next: PrevState
   mutated: boolean
 }
+
+export type MarkdownDirectiveNode =
+  | ContainerDirective
+  | LeafDirective
+  | TextDirective
+
+export type DirectiveRenderProps = {
+  node: MarkdownDirectiveNode
+  children: ReactNode | null
+  directiveType: MarkdownDirectiveNode['type']
+  name?: string
+  attributes?: Record<string, unknown>
+}
+
+export type MarkdownDirectiveRenderer = (
+  props: DirectiveRenderProps,
+) => ReactNode
 
 const toArray = (chunks: readonly string[]): string[] => Array.from(chunks)
 
@@ -163,42 +188,98 @@ const applyStableProps = (
   }
 }
 
+const directiveHandler: Handler = (state, node) => {
+  const directive = node as MarkdownDirectiveNode
+  const properties = {
+    node: directive,
+    directiveType: directive.type,
+    name: directive.name,
+    attributes: directive.attributes ?? {},
+  } as unknown as HastProperties
+  return {
+    type: 'element',
+    tagName: 'DirectiveMarker',
+    properties,
+    children: state.all(directive as never),
+  }
+}
+
+const directiveHandlers: Record<string, Handler> = {
+  containerDirective: directiveHandler,
+  leafDirective: directiveHandler,
+  textDirective: directiveHandler,
+}
+
 const defaultRenderBuffer = () => null
 
-const renderBlockNode = (block: MarkdownBlock): ReactNode => {
+const defaultRenderDirective: MarkdownDirectiveRenderer = () => null
+
+type DirectiveMarkerProps = {
+  node: MarkdownDirectiveNode
+  directiveType: MarkdownDirectiveNode['type']
+  name?: string
+  attributes?: Record<string, unknown>
+  children?: ReactNode
+}
+
+const renderBlockNode = (
+  block: MarkdownBlock,
+  renderDirective?: MarkdownDirectiveRenderer,
+): ReactNode => {
   const root: Root = {
     type: 'root',
     children: [block],
   }
 
-  const tree = toHast(root, { allowDangerousHtml: true })
+  const tree = toHast(root, {
+    allowDangerousHtml: true,
+    handlers: directiveHandlers,
+  })
   if (!tree) {
     return null
   }
+
+  const directiveRenderer = renderDirective ?? defaultRenderDirective
 
   return toJsxRuntime(tree, {
     Fragment: JsxFragment,
     jsx,
     jsxs,
+    components: {
+      DirectiveMarker: (
+        props: DirectiveMarkerProps,
+      ) =>
+        directiveRenderer({
+          node: props.node,
+          children: props.children ?? null,
+          directiveType: props.directiveType,
+          name: props.name,
+          attributes: props.attributes,
+        }),
+    },
   })
 }
 
 type BlockViewProps = {
   block: MarkdownBlock
+  renderDirective?: MarkdownDirectiveRenderer
 }
 
 const DefaultBlockView = memo(
-  function DefaultBlockView({ block }: BlockViewProps) {
-    const content = renderBlockNode(block)
+  function DefaultBlockView({ block, renderDirective }: BlockViewProps) {
+    const content = renderBlockNode(block, renderDirective)
     return <>{content}</>
   },
-  (previous, next) => previous.block === next.block,
+  (previous, next) =>
+    previous.block === next.block &&
+    previous.renderDirective === next.renderDirective,
 )
 
 export const MarkdownStream = (props: MarkdownStreamProps) => {
   const mode = props.mode ?? 'stable'
   const customRenderBlock = props.renderBlock
   const renderBuffer = props.renderBuffer ?? defaultRenderBuffer
+  const renderDirective = props.renderDirective
 
   const sessionRef = useRef<MarkdownSession | null>(null)
   const snapshotRef = useRef<MarkdownSnapshot | null>(null)
@@ -285,7 +366,13 @@ export const MarkdownStream = (props: MarkdownStreamProps) => {
       {snapshot.committedBlocks.map((block, index) => (
         customRenderBlock
           ? <Fragment key={index}>{customRenderBlock(block, index)}</Fragment>
-          : <DefaultBlockView key={index} block={block} />
+          : (
+            <DefaultBlockView
+              key={index}
+              block={block}
+              renderDirective={renderDirective}
+            />
+          )
       ))}
       {renderBuffer(snapshot.bufferBlocks[0] ?? null)}
     </Fragment>

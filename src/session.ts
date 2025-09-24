@@ -1,5 +1,6 @@
 import { unified } from 'unified'
 import remarkParse from 'remark-parse'
+import remarkDirective from 'remark-directive'
 import type { Root, RootContent } from 'npm:@types/mdast'
 
 type SessionInit = {
@@ -40,7 +41,7 @@ const getOffset = (value: number | undefined): number | null => {
 }
 
 export const createSession = (initial?: SessionInit): MarkdownSession => {
-  const parser = unified().use(remarkParse)
+  const parser = unified().use(remarkParse).use(remarkDirective)
 
   const state: MutableSnapshot = {
     committedBlocks: [],

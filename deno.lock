@@ -11,9 +11,12 @@
     "npm:@vitejs/plugin-react-swc@^4.1.0": "4.1.0_vite@7.1.7__picomatch@4.0.3_@types+node@24.2.0",
     "npm:esbuild@~0.25.10": "0.25.10",
     "npm:hast-util-to-jsx-runtime@^2.3.6": "2.3.6",
+    "npm:hast@1": "1.0.0",
+    "npm:mdast-util-directive@^3.1.0": "3.1.0",
     "npm:mdast-util-to-hast@^13.2.0": "13.2.0",
     "npm:react-dom@^19.1.1": "19.1.1_react@19.1.1",
     "npm:react@^19.1.1": "19.1.1",
+    "npm:remark-directive@4": "4.0.0",
     "npm:remark-parse@11": "11.0.0",
     "npm:unified@^11.0.5": "11.0.5",
     "npm:vite@*": "7.1.7_picomatch@4.0.3_@types+node@24.2.0",
@@ -553,6 +556,10 @@
         "@types/hast"
       ]
     },
+    "hast@1.0.0": {
+      "integrity": "sha512-vFUqlRV5C+xqP76Wwq2SrM0kipnmpxJm7OfvVXpB35Fp+Fn4MV+ozr+JZr5qFvyR1q/U+Foim2x+3P+x9S1PLA==",
+      "deprecated": true
+    },
     "inline-style-parser@0.2.4": {
       "integrity": "sha512-0aO8FkhNZlj/ZIbNi7Lxxr12obT7cL1moPfE4tg1LkX7LlLfC6DeX4l2ZEud1ukP9jNQyNnfzQVqwbwmAATY4Q=="
     },
@@ -577,6 +584,20 @@
     },
     "longest-streak@3.1.0": {
       "integrity": "sha512-9Ri+o0JYgehTaVBBDoMqIl8GXtbWg711O3srftcHhZ0dqnETqLaoIK0x17fUw9rFSlK/0NlsKe0Ahhyl5pXE2g=="
+    },
+    "mdast-util-directive@3.1.0": {
+      "integrity": "sha512-I3fNFt+DHmpWCYAT7quoM6lHf9wuqtI+oCOfvILnoicNIqjh5E3dEJWiXuYME2gNe8vl1iMQwyUHa7bgFmak6Q==",
+      "dependencies": [
+        "@types/mdast",
+        "@types/unist@3.0.3",
+        "ccount",
+        "devlop",
+        "mdast-util-from-markdown",
+        "mdast-util-to-markdown",
+        "parse-entities",
+        "stringify-entities",
+        "unist-util-visit-parents"
+      ]
     },
     "mdast-util-from-markdown@2.0.2": {
       "integrity": "sha512-uZhTV/8NBuw0WHkPTrCqDOl0zVe1BIng5ZtHoDk49ME1qqcjYmmLmOf0gELgcRMxN4w2iuIeVso5/6QymSrgmA==",
@@ -694,6 +715,18 @@
         "micromark-util-subtokenize",
         "micromark-util-symbol",
         "micromark-util-types"
+      ]
+    },
+    "micromark-extension-directive@4.0.0": {
+      "integrity": "sha512-/C2nqVmXXmiseSSuCdItCMho7ybwwop6RrrRPk0KbOHW21JKoCldC+8rFOaundDoRBUWBnJJcxeA/Kvi34WQXg==",
+      "dependencies": [
+        "devlop",
+        "micromark-factory-space",
+        "micromark-factory-whitespace",
+        "micromark-util-character",
+        "micromark-util-symbol",
+        "micromark-util-types",
+        "parse-entities"
       ]
     },
     "micromark-factory-destination@2.0.1": {
@@ -890,6 +923,15 @@
     "react@19.1.1": {
       "integrity": "sha512-w8nqGImo45dmMIfljjMwOGtbmC/mk4CMYhWIicdSflH91J9TyCyczcPFXJzrZ/ZXcgGRFeP6BU0BEJTw6tZdfQ=="
     },
+    "remark-directive@4.0.0": {
+      "integrity": "sha512-7sxn4RfF1o3izevPV1DheyGDD6X4c9hrGpfdUpm7uC++dqrnJxIZVkk7CoKqcLm0VUMAuOol7Mno3m6g8cfMuA==",
+      "dependencies": [
+        "@types/mdast",
+        "mdast-util-directive",
+        "micromark-extension-directive",
+        "unified"
+      ]
+    },
     "remark-parse@11.0.0": {
       "integrity": "sha512-FCxlKLNGknS5ba/1lmpYijMUzX2esxW5xQqjWxw2eHFfS2MSdaHVINFmhjo+qN1WhZhNimq0dZATN9pH0IDrpA==",
       "dependencies": [
@@ -1083,9 +1125,12 @@
         "npm:@vitejs/plugin-react-swc@^4.1.0",
         "npm:esbuild@~0.25.10",
         "npm:hast-util-to-jsx-runtime@^2.3.6",
+        "npm:hast@1",
+        "npm:mdast-util-directive@^3.1.0",
         "npm:mdast-util-to-hast@^13.2.0",
         "npm:react-dom@^19.1.1",
         "npm:react@^19.1.1",
+        "npm:remark-directive@4",
         "npm:remark-parse@11",
         "npm:unified@^11.0.5",
         "npm:vite@^7.1.7"
