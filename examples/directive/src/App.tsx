@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 
-import { type MarkdownDirectiveRenderer, MarkdownStream } from 'stream-markdown'
+import {
+  type MarkdownDirectiveRenderer,
+  MarkdownStream,
+} from '@/stream-markdown'
 
 const STREAM_INTERVAL = 420
 

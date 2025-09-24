@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 
-import { MarkdownStream } from 'stream-markdown'
+import { MarkdownStream } from '@/stream-markdown'
 
 const STREAM_INTERVAL = 480
 
