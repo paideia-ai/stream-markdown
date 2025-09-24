@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      'stream-markdown': path.resolve(__dirname, '../../src/index.ts'),
+      '@/stream-markdown': path.resolve(__dirname, '../../src/index.ts'),
     },
   },
 })

@@ -61,19 +61,19 @@
 ### Public API
 
 - `<MarkdownStream />` props:
-  - `mode`: `'streaming' | 'stable'` (default `'stable'`).
-  - `chunks?: string[]` (required in streaming mode, append-only).
-  - `content?: string` (required in stable mode).
-  - `complete?: boolean` optional flag to force finalization while in streaming
-    mode.
-  - `renderBlock?: (block, index) => ReactNode` optional renderer override.
+  - `streaming?: boolean` (default `false`).
+  - `chunks?: string[]` (required when `streaming` is `true`, append-only).
+  - `content?: string` (required when `streaming` is `false`).
+  - `components?: MarkdownComponents` optional map of HTML tag overrides.
+  - `directives?: Record<string, MarkdownDirectiveRenderer>` optional directive
+    renderer map.
   - `renderBuffer?: (block | null) => ReactNode` optional preview of buffered
     block.
 
 ### Lifecycle Behavior
 
 - On first render, create a session via
-  `createSession({ value: initialString, done })` based on `mode`.
+  `createSession({ value: initialString, done })` when `streaming` is `false`.
 - Keep the session in a ref so renders do not recreate it unless a reset
   condition is triggered.
 
@@ -83,10 +83,9 @@
   `session.write(chunk)`.
 - If chunk order shrinks or any existing index changes, invoke
   `session.reset({ value: chunks.join(''), done: false })`.
-- When `complete` flips true, compute remaining suffix against joined chunks and
-  call `finalize(remainingSuffix)`.
-- After finalization, treat the session as closed until props change to a fresh
-  streaming sequence.
+- Finalization happens when callers re-render with `streaming` disabled and a
+  `content` string; the stable branch reconciles the suffix and promotes any
+  buffered block.
 
 #### Mode Transitions
 
@@ -105,10 +104,10 @@
   redundant work.
 - Render `committedBlocks` using array index as `key` (prefix stability ensured
   by promotion rules).
+- Convert each block to React via `mdast-util-to-hast` + `hast-util-to-jsx`
+  using the provided `components` overrides and directive map.
 - Render the single buffered block (if present) via `renderBuffer` or omit it by
   default.
-- `renderBlock` defaults to a `MarkdownBlock` component that converts mdast →
-  hast → React on demand.
 
 ### Error Handling & Diagnostics
 

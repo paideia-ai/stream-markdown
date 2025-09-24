@@ -22,8 +22,8 @@ jobs:
       - name: Check formatting
         run: deno fmt --check
 
-      - name: Type check
-        run: deno check src/
+      - name: Type check library and examples
+        run: deno check src/ examples/basic/src/main.tsx examples/directive/src/main.tsx
 
       - name: Run tests
         run: deno test

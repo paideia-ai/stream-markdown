@@ -1,9 +1,10 @@
-import { Fragment, memo, useEffect, useReducer, useRef } from 'react'
+import { Fragment, memo } from 'react'
 import type { ReactNode } from 'react'
 import { Fragment as JsxFragment, jsx, jsxs } from 'react/jsx-runtime'
 import { toHast } from 'mdast-util-to-hast'
 import type { Handler } from 'mdast-util-to-hast'
 import { toJsxRuntime } from 'hast-util-to-jsx-runtime'
+import type { Components as HastComponents } from 'hast-util-to-jsx-runtime'
 import type { Properties as HastProperties } from 'hast'
 import type { Root } from 'mdast'
 import type {
@@ -13,51 +14,11 @@ import type {
 } from 'mdast-util-directive'
 
 import {
-  createSession,
   type MarkdownBlock,
-  type MarkdownSession,
-  type MarkdownSnapshot,
-} from './session.ts'
-
-type CommonRenderers = {
-  renderBlock?: (block: MarkdownBlock, index: number) => ReactNode
-  renderBuffer?: (block: MarkdownBlock | null) => ReactNode
-  renderDirective?: MarkdownDirectiveRenderer
-}
-
-type StreamingProps = {
-  mode: 'streaming'
-  chunks: readonly string[]
-  complete?: boolean
-  content?: string
-} & CommonRenderers
-
-type StableProps = {
-  mode?: 'stable'
-  content: string
-} & CommonRenderers
-
-export type MarkdownStreamProps = StreamingProps | StableProps
-
-type StreamingPrevState = {
-  mode: 'streaming'
-  chunks: readonly string[]
-  text: string
-  complete: boolean
-  latestStable?: string
-}
-
-type StablePrevState = {
-  mode: 'stable'
-  content: string
-}
-
-type PrevState = StreamingPrevState | StablePrevState | null
-
-type ApplyResult = {
-  next: PrevState
-  mutated: boolean
-}
+  type MarkdownMergeResult,
+  mergeMarkdownState,
+} from './markdown-state.ts'
+import { useDerivedState } from './utils.ts'
 
 export type MarkdownDirectiveNode =
   | ContainerDirective
@@ -76,117 +37,34 @@ export type MarkdownDirectiveRenderer = (
   props: DirectiveRenderProps,
 ) => ReactNode
 
-const toArray = (chunks: readonly string[]): string[] => Array.from(chunks)
+export type MarkdownComponents = Partial<HastComponents>
 
-const applyStreamingProps = (
-  session: MarkdownSession,
-  prev: PrevState,
-  props: StreamingProps,
-): ApplyResult => {
-  const chunks = props.chunks ?? []
-  const complete = props.complete ?? false
-  const stableContent = props.content
-  const joined = chunks.join('')
+export type MarkdownDirectiveComponents = Record<
+  string,
+  MarkdownDirectiveRenderer
+>
 
-  const previousStable = prev && prev.mode === 'streaming'
-    ? prev.latestStable
-    : undefined
+type RenderBufferProp =
+  | boolean
+  | ((block: MarkdownBlock | null) => ReactNode)
 
-  let mutated = false
-  let needsReset = true
-
-  if (prev && prev.mode === 'streaming') {
-    needsReset = false
-    if (chunks.length < prev.chunks.length) {
-      needsReset = true
-    } else {
-      for (let index = 0; index < prev.chunks.length; index += 1) {
-        if (chunks[index] !== prev.chunks[index]) {
-          needsReset = true
-          break
-        }
-      }
-    }
-  }
-
-  if (needsReset) {
-    session.reset({ value: joined, done: false })
-    mutated = true
-  } else if (prev && prev.mode === 'streaming') {
-    for (let index = prev.chunks.length; index < chunks.length; index += 1) {
-      session.write(chunks[index])
-      mutated = true
-    }
-  }
-
-  if (complete) {
-    const snapshot = session.snapshot()
-    if (stableContent && !stableContent.startsWith(joined)) {
-      session.reset({ value: stableContent, done: true })
-      mutated = true
-    } else if (!snapshot.done) {
-      const suffix = stableContent ? stableContent.slice(joined.length) : ''
-      if (suffix.length > 0) {
-        session.finalize(suffix)
-      } else {
-        session.finalize()
-      }
-      mutated = true
-    }
-  }
-
-  return {
-    next: {
-      mode: 'streaming',
-      chunks: toArray(chunks),
-      text: joined,
-      complete,
-      latestStable: stableContent ?? previousStable,
-    },
-    mutated,
-  }
+type CommonRenderProps = {
+  components?: MarkdownComponents
+  directives?: MarkdownDirectiveComponents
+  renderBuffer?: RenderBufferProp
 }
 
-const applyStableProps = (
-  session: MarkdownSession,
-  prev: PrevState,
-  props: StableProps,
-): ApplyResult => {
-  const content = props.content ?? ''
-  let mutated = false
+type StreamingProps = {
+  streaming: true
+  chunks: readonly string[]
+} & CommonRenderProps
 
-  if (prev && prev.mode === 'streaming') {
-    const prefix = prev.text
-    if (content.startsWith(prefix)) {
-      const suffix = content.slice(prefix.length)
-      if (!session.snapshot().done) {
-        if (suffix.length > 0) {
-          session.finalize(suffix)
-        } else {
-          session.finalize()
-        }
-        mutated = true
-      }
-    } else {
-      session.reset({ value: content, done: true })
-      mutated = true
-    }
-  } else if (!prev || prev.mode !== 'stable' || prev.content !== content) {
-    session.reset({ value: content, done: true })
-    mutated = true
-  } else if (!session.snapshot().done) {
-    session.finalize()
-    mutated = true
-  }
+type StableProps = {
+  streaming?: false
+  content: string
+} & CommonRenderProps
 
-  return {
-    next: {
-      mode: 'stable',
-      content,
-    },
-    mutated,
-  }
-}
+export type MarkdownStreamProps = StreamingProps | StableProps
 
 const directiveHandler: Handler = (state, node) => {
   const directive = node as MarkdownDirectiveNode
@@ -210,10 +88,6 @@ const directiveHandlers: Record<string, Handler> = {
   textDirective: directiveHandler,
 }
 
-const defaultRenderBuffer = () => null
-
-const defaultRenderDirective: MarkdownDirectiveRenderer = () => null
-
 type DirectiveMarkerProps = {
   node: MarkdownDirectiveNode
   directiveType: MarkdownDirectiveNode['type']
@@ -222,9 +96,33 @@ type DirectiveMarkerProps = {
   children?: ReactNode
 }
 
+const renderDirectiveFromMap = (
+  props: DirectiveMarkerProps,
+  directives?: MarkdownDirectiveComponents,
+): ReactNode => {
+  const name = props.name
+  if (!name || !directives) {
+    return null
+  }
+
+  const renderer = directives[name]
+  if (!renderer) {
+    return null
+  }
+
+  return renderer({
+    node: props.node,
+    children: props.children ?? null,
+    directiveType: props.directiveType,
+    name,
+    attributes: props.attributes ?? {},
+  })
+}
+
 const renderBlockNode = (
   block: MarkdownBlock,
-  renderDirective?: MarkdownDirectiveRenderer,
+  components?: MarkdownComponents,
+  directives?: MarkdownDirectiveComponents,
 ): ReactNode => {
   const root: Root = {
     type: 'root',
@@ -239,142 +137,118 @@ const renderBlockNode = (
     return null
   }
 
-  const directiveRenderer = renderDirective ?? defaultRenderDirective
+  const mergedComponents = components
+    ? {
+      ...components,
+      DirectiveMarker: (props: DirectiveMarkerProps) =>
+        renderDirectiveFromMap(props, directives),
+    }
+    : {
+      DirectiveMarker: (props: DirectiveMarkerProps) =>
+        renderDirectiveFromMap(props, directives),
+    }
 
   return toJsxRuntime(tree, {
     Fragment: JsxFragment,
     jsx,
     jsxs,
-    components: {
-      DirectiveMarker: (
-        props: DirectiveMarkerProps,
-      ) =>
-        directiveRenderer({
-          node: props.node,
-          children: props.children ?? null,
-          directiveType: props.directiveType,
-          name: props.name,
-          attributes: props.attributes,
-        }),
-    },
+    components: mergedComponents,
   })
 }
 
-type BlockViewProps = {
+type MarkdownBlockViewProps = {
   block: MarkdownBlock
-  renderDirective?: MarkdownDirectiveRenderer
+  components?: MarkdownComponents
+  directives?: MarkdownDirectiveComponents
 }
 
-const DefaultBlockView = memo(
-  function DefaultBlockView({ block, renderDirective }: BlockViewProps) {
-    const content = renderBlockNode(block, renderDirective)
-    return <>{content}</>
-  },
-  (previous, next) =>
-    previous.block === next.block &&
-    previous.renderDirective === next.renderDirective,
-)
+export const MarkdownBlockView = memo(function MarkdownBlockView({
+  block,
+  components,
+  directives,
+}: MarkdownBlockViewProps) {
+  return <>{renderBlockNode(block, components, directives)}</>
+})
+
+type MarkdownBlockListProps = {
+  blocks: readonly MarkdownBlock[]
+  components?: MarkdownComponents
+  directives?: MarkdownDirectiveComponents
+}
+
+const MarkdownBlockList = memo(function MarkdownBlockList({
+  blocks,
+  components,
+  directives,
+}: MarkdownBlockListProps) {
+  return (
+    <>
+      {blocks.map((block, index) => (
+        <MarkdownBlockView
+          key={index}
+          block={block}
+          components={components}
+          directives={directives}
+        />
+      ))}
+    </>
+  )
+})
 
 export const MarkdownStream = (props: MarkdownStreamProps) => {
-  const mode = props.mode ?? 'stable'
-  const customRenderBlock = props.renderBlock
-  const renderBuffer = props.renderBuffer ?? defaultRenderBuffer
-  const renderDirective = props.renderDirective
+  const components = props.components
+  const directives = props.directives
 
-  const sessionRef = useRef<MarkdownSession | null>(null)
-  const snapshotRef = useRef<MarkdownSnapshot | null>(null)
-  const prevRef = useRef<PrevState>(null)
+  const mergeResult = useDerivedState<MarkdownStreamProps, MarkdownMergeResult>(
+    props,
+    (previous, nextProps) => {
+      const previousState = previous?.state
+      if (nextProps.streaming === true) {
+        return mergeMarkdownState(previousState, {
+          chunks: nextProps.chunks,
+          done: false,
+        })
+      }
 
-  if (sessionRef.current === null) {
-    const session = mode === 'stable'
-      ? createSession({
-        value: (props as StableProps).content ?? '',
+      return mergeMarkdownState(previousState, {
+        chunks: [nextProps.content ?? ''],
         done: true,
       })
-      : createSession()
-    sessionRef.current = session
-    snapshotRef.current = session.snapshot()
-    prevRef.current = mode === 'stable'
-      ? {
-        mode: 'stable',
-        content: (props as StableProps).content ?? '',
-      }
-      : null
-  }
+    },
+  )
 
-  const [, forceRender] = useReducer((value: number) => value + 1, 0)
+  const renderBufferProp: RenderBufferProp | undefined = props.renderBuffer
 
-  const streamingChunks = mode === 'streaming'
-    ? (props as StreamingProps).chunks
-    : undefined
-  const streamingComplete = mode === 'streaming'
-    ? (props as StreamingProps).complete
-    : undefined
-  useEffect(() => {
-    const session = sessionRef.current
-    if (!session) {
-      return
+  const renderBufferNode = (block: MarkdownBlock | null) => {
+    if (renderBufferProp === true) {
+      return block
+        ? (
+          <MarkdownBlockView
+            block={block}
+            components={components}
+            directives={directives}
+          />
+        )
+        : null
     }
 
-    const prev = prevRef.current
-    let result: ApplyResult
-
-    if (mode === 'streaming') {
-      result = applyStreamingProps(session, prev, props as StreamingProps)
-    } else {
-      result = applyStableProps(session, prev, props as StableProps)
+    if (typeof renderBufferProp === 'function') {
+      return renderBufferProp(block)
     }
 
-    prevRef.current = result.next
-
-    const previousSnapshot = snapshotRef.current
-    const nextSnapshot = session.snapshot()
-    snapshotRef.current = nextSnapshot
-
-    const bufferChanged = !previousSnapshot ||
-      nextSnapshot.bufferBlocks.length !==
-        previousSnapshot.bufferBlocks.length ||
-      nextSnapshot.bufferBlocks.some((node, index) =>
-        node !== previousSnapshot.bufferBlocks[index]
-      )
-    const commitCountChanged = !previousSnapshot ||
-      nextSnapshot.committedBlocks.length !==
-        previousSnapshot.committedBlocks.length
-    const versionChanged = !previousSnapshot ||
-      nextSnapshot.version !== previousSnapshot.version
-    const doneChanged = !previousSnapshot ||
-      nextSnapshot.done !== previousSnapshot.done
-    const cursorChanged = !previousSnapshot ||
-      nextSnapshot.cursor !== previousSnapshot.cursor
-
-    if (
-      result.mutated || bufferChanged || commitCountChanged || versionChanged ||
-      doneChanged || cursorChanged
-    ) {
-      forceRender()
-    }
-  }, [mode, streamingChunks, props.content, streamingComplete])
-
-  const snapshot = snapshotRef.current ?? sessionRef.current?.snapshot()
-
-  if (!snapshot) {
     return null
   }
 
+  const bufferBlock = mergeResult.bufferBlock ?? null
+
   return (
     <Fragment>
-      {snapshot.committedBlocks.map((block, index) => (
-        customRenderBlock
-          ? <Fragment key={index}>{customRenderBlock(block, index)}</Fragment>
-          : (
-            <DefaultBlockView
-              key={index}
-              block={block}
-              renderDirective={renderDirective}
-            />
-          )
-      ))}
-      {renderBuffer(snapshot.bufferBlocks[0] ?? null)}
+      <MarkdownBlockList
+        blocks={mergeResult.committedBlocks}
+        components={components}
+        directives={directives}
+      />
+      {renderBufferNode(bufferBlock)}
     </Fragment>
   )
 }

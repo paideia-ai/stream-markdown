@@ -12,13 +12,15 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "jsxImportSource": "react",
-    "strict": true
+    "strict": true,
+    "lib": ["dom", "dom.iterable", "deno.window"]
   },
   "nodeModulesDir": "auto",
   "tasks": {
     "example": "deno run -A scripts/run-example.ts"
   },
   "imports": {
+    "@/stream-markdown": "./src/index.ts",
     "@std/assert": "jsr:@std/assert@^1.0.14"
   }
 }

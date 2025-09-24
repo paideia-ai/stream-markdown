@@ -22,7 +22,7 @@ deno task example directive  # directive renderer demo
 - Stream Markdown incrementally while keeping promoted blocks stable for React
   reconciliation.
 - Opt into directive rendering via the `remark-directive` syntax and a
-  `renderDirective` callback.
+  `directives` map.
 - Headless primitives only—consumers control every piece of UI.
 - For implementation details and roadmap, see [`SPEC.md`](./SPEC.md).
 
@@ -34,7 +34,7 @@ deno task example directive  # directive renderer demo
 import { MarkdownStream } from 'stream-markdown'
 
 export const Preview = ({ chunks }: { chunks: string[] }) => (
-  <MarkdownStream mode='streaming' chunks={chunks} />
+  <MarkdownStream streaming chunks={chunks} />
 )
 ```
 
@@ -44,26 +44,49 @@ Stable Markdown can be rendered without streaming props:
 <MarkdownStream content='# Hello world' />
 ```
 
-### Rendering directives
+When the stream finishes, render again with `streaming={false}` and the final
+`content` so the session can finalize buffered suffixes without resetting:
 
 ```tsx
-import type { MarkdownDirectiveRenderer } from 'stream-markdown'
-
-const renderDirective: MarkdownDirectiveRenderer = ({ name, children }) => {
-  if (name === 'callout') {
-    return <aside className='callout'>{children}</aside>
-  }
-  return null
-}
+const streaming = !isComplete
 
 <MarkdownStream
-  content=':::callout\nContent\n:::'
-  renderDirective={renderDirective}
+  {...(streaming
+    ? { streaming: true as const, chunks }
+    : { content: fullMarkdown })}
 />
 ```
 
-If no renderer is provided, directive nodes resolve to `null`, keeping the tree
-stable even when directives appear in streamed chunks.
+### Rendering directives
+
+```tsx
+import type { MarkdownDirectiveComponents } from 'stream-markdown'
+
+const directives: MarkdownDirectiveComponents = {
+  callout: ({ children }) => <aside className='callout'>{children}</aside>,
+}
+
+<MarkdownStream content=':::callout\nContent\n:::' directives={directives} />
+```
+
+If no matching directive renderer is provided, directive nodes resolve to
+`null`, keeping the tree stable even when directives appear in streamed chunks.
+
+### Overriding Markdown elements
+
+```tsx
+import type { MarkdownComponents } from 'stream-markdown'
+
+const components: MarkdownComponents = {
+  h1: ({ children, ...rest }) => (
+    <h1 {...rest} className='text-3xl font-bold'>
+      {children}
+    </h1>
+  ),
+}
+
+<MarkdownStream content='# Styled heading' components={components} />
+```
 
 ---
 

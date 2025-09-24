@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 
-import { MarkdownStream } from 'stream-markdown'
+import { MarkdownStream } from '@/stream-markdown'
 
 const STREAM_INTERVAL = 480
 
@@ -24,6 +24,7 @@ const DOC_CHUNKS = [
 export const App = () => {
   const [chunks, setChunks] = useState<string[]>([])
   const [complete, setComplete] = useState(false)
+  const [showBuffer, setShowBuffer] = useState(false)
   const [sessionKey, setSessionKey] = useState(0)
 
   useEffect(() => {
@@ -66,6 +67,8 @@ export const App = () => {
 
   const currentSource = useMemo(() => chunks.join(''), [chunks])
 
+  const streaming = !complete
+
   return (
     <div className='app'>
       <header className='app__header'>
@@ -76,6 +79,14 @@ export const App = () => {
         <p>
           Delivered chunks: {chunks.length} / {DOC_CHUNKS.length}
         </p>
+        <label className='app__toggle'>
+          <input
+            type='checkbox'
+            checked={showBuffer}
+            onChange={(event) => setShowBuffer(event.target.checked)}
+          />
+          Show buffer block
+        </label>
         <button type='button' onClick={reset}>
           Reset stream
         </button>
@@ -84,10 +95,10 @@ export const App = () => {
         <section className='app__pane'>
           <h2>Rendered output</h2>
           <MarkdownStream
-            mode='streaming'
-            chunks={chunks}
-            complete={complete}
-            content={DOC_SOURCE}
+            {...(streaming
+              ? { streaming: true as const, chunks }
+              : { content: DOC_SOURCE })}
+            renderBuffer={showBuffer ? true : false}
           />
         </section>
         <section className='app__pane app__pane--source'>
