@@ -115,6 +115,7 @@ const directives: MarkdownDirectiveComponents = {
 export const App = () => {
   const [chunks, setChunks] = useState<string[]>([])
   const [complete, setComplete] = useState(false)
+  const [showBuffer, setShowBuffer] = useState(false)
   const [sessionKey, setSessionKey] = useState(0)
 
   useEffect(() => {
@@ -182,6 +183,14 @@ export const App = () => {
             <p>
               {chunks.length} / {DOC_CHUNKS.length} chunks delivered
             </p>
+            <label className='status__toggle'>
+              <input
+                type='checkbox'
+                checked={showBuffer}
+                onChange={(event) => setShowBuffer(event.target.checked)}
+              />
+              Show buffer block
+            </label>
           </div>
         </div>
       </header>
@@ -193,6 +202,7 @@ export const App = () => {
               {...(streaming
                 ? { streaming: true as const, chunks, directives }
                 : { content: DOC_SOURCE, directives })}
+              renderBuffer={showBuffer ? true : false}
             />
           </div>
         </section>
