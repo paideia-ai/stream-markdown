@@ -1,0 +1,17 @@
+{
+  "dependencies": {
+    "hast-util-to-jsx-runtime": "^2.3.6",
+    "mdast-util-to-hast": "^13.2.0",
+    "react": "^19.1.1",
+    "remark-parse": "^11.0.0",
+    "unified": "^11.0.5"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react-swc": "^4.1.0",
+    "esbuild": "^0.25.10",
+    "react-dom": "^19.1.1",
+    "vite": "^7.1.7"
+  }
+}
