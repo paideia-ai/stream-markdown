@@ -77,6 +77,9 @@
   hooks/utilities for consumers to wire their own UI.
 - Prefer pure functions for Markdown transforms; guard async or streaming code
   paths with strong type contracts.
+- Prefer early exits to reduce nesting and keep logic readable.
+- Always use braces for conditionals and loops, even when the body is a single
+  statement.
 
 ## Testing Strategy
 

@@ -3,5 +3,10 @@
     "indentWidth": 2,
     "semiColons": false,
     "singleQuote": true
+  },
+  "lint": {
+    "plugins": [
+      "jsr:@aireone/deno-lint-curly"
+    ]
   }
 }
