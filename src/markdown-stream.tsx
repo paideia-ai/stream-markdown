@@ -24,7 +24,6 @@ type StreamingPrevState = {
   mode: 'streaming'
   chunks: readonly string[]
   text: string
-  complete: boolean
   latestStable?: string
 }
 
@@ -71,14 +70,12 @@ type CommonRenderProps = {
 }
 
 type StreamingProps = {
-  mode: 'streaming'
+  streaming: true
   chunks: readonly string[]
-  complete?: boolean
-  content?: string
 } & CommonRenderProps
 
 type StableProps = {
-  mode?: 'stable'
+  streaming?: false
   content: string
 } & CommonRenderProps
 
@@ -92,8 +89,6 @@ const applyStreamingProps = (
   props: StreamingProps,
 ): ApplyResult => {
   const chunks = props.chunks ?? []
-  const complete = props.complete ?? false
-  const stableContent = props.content
   const joined = chunks.join('')
 
   const previousStable = prev && prev.mode === 'streaming'
@@ -127,29 +122,12 @@ const applyStreamingProps = (
     }
   }
 
-  if (complete) {
-    const snapshot = session.snapshot()
-    if (stableContent && !stableContent.startsWith(joined)) {
-      session.reset({ value: stableContent, done: true })
-      mutated = true
-    } else if (!snapshot.done) {
-      const suffix = stableContent ? stableContent.slice(joined.length) : ''
-      if (suffix.length > 0) {
-        session.finalize(suffix)
-      } else {
-        session.finalize()
-      }
-      mutated = true
-    }
-  }
-
   return {
     next: {
       mode: 'streaming',
       chunks: toArray(chunks),
       text: joined,
-      complete,
-      latestStable: stableContent ?? previousStable,
+      latestStable: previousStable,
     },
     mutated,
   }
@@ -306,7 +284,7 @@ const DefaultBlockView = memo(
 )
 
 export const MarkdownStream = (props: MarkdownStreamProps) => {
-  const mode = props.mode ?? 'stable'
+  const streaming = props.streaming === true
   const renderBuffer = props.renderBuffer ?? defaultRenderBuffer
   const components = props.components
   const directives = props.directives
@@ -315,31 +293,26 @@ export const MarkdownStream = (props: MarkdownStreamProps) => {
   const snapshotRef = useRef<MarkdownSnapshot | null>(null)
   const prevRef = useRef<PrevState>(null)
 
+  const streamingProps = streaming ? props as StreamingProps : undefined
+  const stableProps = streaming ? undefined : props as StableProps
+
   if (sessionRef.current === null) {
-    const session = mode === 'stable'
-      ? createSession({
-        value: (props as StableProps).content ?? '',
-        done: true,
-      })
-      : createSession()
+    const session = streaming ? createSession() : createSession({
+      value: stableProps?.content ?? '',
+      done: true,
+    })
     sessionRef.current = session
     snapshotRef.current = session.snapshot()
-    prevRef.current = mode === 'stable'
-      ? {
-        mode: 'stable',
-        content: (props as StableProps).content ?? '',
-      }
-      : null
+    prevRef.current = streaming ? null : {
+      mode: 'stable',
+      content: stableProps?.content ?? '',
+    }
   }
 
   const [, forceRender] = useReducer((value: number) => value + 1, 0)
 
-  const streamingChunks = mode === 'streaming'
-    ? (props as StreamingProps).chunks
-    : undefined
-  const streamingComplete = mode === 'streaming'
-    ? (props as StreamingProps).complete
-    : undefined
+  const streamingChunks = streamingProps?.chunks
+  const stableContent = stableProps?.content
   useEffect(() => {
     const session = sessionRef.current
     if (!session) {
@@ -349,10 +322,12 @@ export const MarkdownStream = (props: MarkdownStreamProps) => {
     const prev = prevRef.current
     let result: ApplyResult
 
-    if (mode === 'streaming') {
-      result = applyStreamingProps(session, prev, props as StreamingProps)
+    if (streaming && streamingProps) {
+      result = applyStreamingProps(session, prev, streamingProps)
+    } else if (stableProps) {
+      result = applyStableProps(session, prev, stableProps)
     } else {
-      result = applyStableProps(session, prev, props as StableProps)
+      return
     }
 
     prevRef.current = result.next
@@ -383,7 +358,11 @@ export const MarkdownStream = (props: MarkdownStreamProps) => {
     ) {
       forceRender()
     }
-  }, [mode, streamingChunks, props.content, streamingComplete])
+  }, [
+    streaming,
+    streamingChunks,
+    stableContent,
+  ])
 
   const snapshot = snapshotRef.current ?? sessionRef.current?.snapshot()
 

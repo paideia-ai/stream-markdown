@@ -155,6 +155,8 @@ export const App = () => {
 
   const markdown = useMemo(() => chunks.join(''), [chunks])
 
+  const streaming = !complete
+
   return (
     <div className='app'>
       <header>
@@ -188,11 +190,9 @@ export const App = () => {
           <h2>Rendered output</h2>
           <div className='markdown'>
             <MarkdownStream
-              mode='streaming'
-              chunks={chunks}
-              complete={complete}
-              content={DOC_SOURCE}
-              directives={directives}
+              {...(streaming
+                ? { streaming: true as const, chunks, directives }
+                : { content: DOC_SOURCE, directives })}
             />
           </div>
         </section>

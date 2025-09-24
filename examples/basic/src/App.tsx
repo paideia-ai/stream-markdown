@@ -66,6 +66,8 @@ export const App = () => {
 
   const currentSource = useMemo(() => chunks.join(''), [chunks])
 
+  const streaming = !complete
+
   return (
     <div className='app'>
       <header className='app__header'>
@@ -84,10 +86,9 @@ export const App = () => {
         <section className='app__pane'>
           <h2>Rendered output</h2>
           <MarkdownStream
-            mode='streaming'
-            chunks={chunks}
-            complete={complete}
-            content={DOC_SOURCE}
+            {...(streaming
+              ? { streaming: true as const, chunks }
+              : { content: DOC_SOURCE })}
           />
         </section>
         <section className='app__pane app__pane--source'>

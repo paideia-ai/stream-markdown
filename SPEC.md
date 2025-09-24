@@ -61,11 +61,9 @@
 ### Public API
 
 - `<MarkdownStream />` props:
-  - `mode`: `'streaming' | 'stable'` (default `'stable'`).
-  - `chunks?: string[]` (required in streaming mode, append-only).
-  - `content?: string` (required in stable mode).
-  - `complete?: boolean` optional flag to force finalization while in streaming
-    mode.
+  - `streaming?: boolean` (default `false`).
+  - `chunks?: string[]` (required when `streaming` is `true`, append-only).
+  - `content?: string` (required when `streaming` is `false`).
   - `components?: MarkdownComponents` optional map of HTML tag overrides.
   - `directives?: Record<string, MarkdownDirectiveRenderer>` optional directive
     renderer map.
@@ -75,7 +73,7 @@
 ### Lifecycle Behavior
 
 - On first render, create a session via
-  `createSession({ value: initialString, done })` based on `mode`.
+  `createSession({ value: initialString, done })` when `streaming` is `false`.
 - Keep the session in a ref so renders do not recreate it unless a reset
   condition is triggered.
 
@@ -85,10 +83,9 @@
   `session.write(chunk)`.
 - If chunk order shrinks or any existing index changes, invoke
   `session.reset({ value: chunks.join(''), done: false })`.
-- When `complete` flips true, compute remaining suffix against joined chunks and
-  call `finalize(remainingSuffix)`.
-- After finalization, treat the session as closed until props change to a fresh
-  streaming sequence.
+- Finalization happens when callers re-render with `streaming` disabled and a
+  `content` string; the stable branch reconciles the suffix and promotes any
+  buffered block.
 
 #### Mode Transitions
 

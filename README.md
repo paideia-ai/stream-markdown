@@ -34,7 +34,7 @@ deno task example directive  # directive renderer demo
 import { MarkdownStream } from 'stream-markdown'
 
 export const Preview = ({ chunks }: { chunks: string[] }) => (
-  <MarkdownStream mode='streaming' chunks={chunks} />
+  <MarkdownStream streaming chunks={chunks} />
 )
 ```
 
@@ -42,6 +42,19 @@ Stable Markdown can be rendered without streaming props:
 
 ```tsx
 <MarkdownStream content='# Hello world' />
+```
+
+When the stream finishes, render again with `streaming={false}` and the final
+`content` so the session can finalize buffered suffixes without resetting:
+
+```tsx
+const streaming = !isComplete
+
+<MarkdownStream
+  {...(streaming
+    ? { streaming: true as const, chunks }
+    : { content: fullMarkdown })}
+/>
 ```
 
 ### Rendering directives
