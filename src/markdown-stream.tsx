@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useReducer, useRef } from 'react'
+import { Fragment, memo, useEffect, useReducer, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { Fragment as JsxFragment, jsx, jsxs } from 'react/jsx-runtime'
 import { toHast } from 'mdast-util-to-hast'
@@ -183,10 +183,21 @@ const renderBlockNode = (block: MarkdownBlock): ReactNode => {
   })
 }
 
+type BlockViewProps = {
+  block: MarkdownBlock
+}
+
+const DefaultBlockView = memo(
+  function DefaultBlockView({ block }: BlockViewProps) {
+    const content = renderBlockNode(block)
+    return <>{content}</>
+  },
+  (previous, next) => previous.block === next.block,
+)
+
 export const MarkdownStream = (props: MarkdownStreamProps) => {
   const mode = props.mode ?? 'stable'
-  const renderBlock = props.renderBlock ??
-    ((block: MarkdownBlock) => renderBlockNode(block))
+  const customRenderBlock = props.renderBlock
   const renderBuffer = props.renderBuffer ?? defaultRenderBuffer
 
   const sessionRef = useRef<MarkdownSession | null>(null)
@@ -272,9 +283,9 @@ export const MarkdownStream = (props: MarkdownStreamProps) => {
   return (
     <Fragment>
       {snapshot.committedBlocks.map((block, index) => (
-        <Fragment key={index}>
-          {renderBlock(block, index)}
-        </Fragment>
+        customRenderBlock
+          ? <Fragment key={index}>{customRenderBlock(block, index)}</Fragment>
+          : <DefaultBlockView key={index} block={block} />
       ))}
       {renderBuffer(snapshot.bufferBlocks[0] ?? null)}
     </Fragment>
