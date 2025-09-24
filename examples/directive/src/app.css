@@ -1,0 +1,167 @@
+:root {
+  color-scheme: light;
+  font-family:
+    'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  line-height: 1.5;
+  background-color: #f4f6fb;
+  color: #0f1729;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+}
+
+.app {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 56px 32px 112px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.app main {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 220px;
+}
+
+.status__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.15);
+  color: #1e3a8a;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.status button {
+  border: none;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #3b82f6, #22c55e);
+  color: #fff;
+  cursor: pointer;
+}
+
+.panel {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.12);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.panel h2 {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.panel pre {
+  background: #0f1729;
+  color: #e2e8f0;
+  padding: 16px;
+  border-radius: 12px;
+  overflow-x: auto;
+  font-size: 13px;
+  margin: 0;
+}
+
+.callout {
+  border-radius: 12px;
+  padding: 16px;
+  border-left-width: 4px;
+  border-left-style: solid;
+  background: rgba(37, 99, 235, 0.08);
+  border-color: #2563eb;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.callout--info {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: #3b82f6;
+}
+
+.callout--success {
+  background: rgba(34, 197, 94, 0.14);
+  border-color: #22c55e;
+}
+
+.callout__title {
+  font-weight: 600;
+  margin: 0;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: rgba(15, 23, 42, 0.08);
+}
+
+.badge--info {
+  background: rgba(59, 130, 246, 0.18);
+  color: #1e3a8a;
+}
+
+.badge--success {
+  background: rgba(34, 197, 94, 0.2);
+  color: #0f5132;
+}
+
+.kbd {
+  font-family: 'Source Code Pro', monospace;
+  font-size: 13px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  background: rgba(15, 23, 42, 0.05);
+}
+
+.markdown h1,
+.markdown h2,
+.markdown h3 {
+  margin-top: 24px;
+  margin-bottom: 12px;
+}
+
+.markdown p {
+  margin-top: 0;
+}
+
+.markdown ul,
+.markdown ol {
+  padding-left: 20px;
+}
