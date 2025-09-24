@@ -1,7 +1,20 @@
 {
+  "name": "@axiia/stream-markdown",
+  "version": "0.0.1",
+  "type": "module",
+  "exports": "./src/index.ts",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
   "dependencies": {
     "hast": "^1.0.0",
     "hast-util-to-jsx-runtime": "^2.3.6",
+    "mdast": "^3.0.0",
     "mdast-util-directive": "^3.1.0",
     "mdast-util-to-hast": "^13.2.0",
     "react": "^19.1.1",
@@ -10,6 +23,8 @@
     "unified": "^11.0.5"
   },
   "devDependencies": {
+    "@types/hast": "^3.0.4",
+    "@types/mdast": "^4.0.4",
     "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react-swc": "^4.1.0",
