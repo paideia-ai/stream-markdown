@@ -8,5 +8,17 @@
     "plugins": [
       "jsr:@aireone/deno-lint-curly"
     ]
+  },
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "strict": true
+  },
+  "nodeModulesDir": "auto",
+  "tasks": {
+    "example": "deno run -A scripts/run-example.ts"
+  },
+  "imports": {
+    "@std/assert": "jsr:@std/assert@^1.0.14"
   }
 }
