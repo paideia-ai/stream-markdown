@@ -22,7 +22,7 @@ deno task example directive  # directive renderer demo
 - Stream Markdown incrementally while keeping promoted blocks stable for React
   reconciliation.
 - Opt into directive rendering via the `remark-directive` syntax and a
-  `renderDirective` callback.
+  `directives` map.
 - Headless primitives only—consumers control every piece of UI.
 - For implementation details and roadmap, see [`SPEC.md`](./SPEC.md).
 
@@ -47,23 +47,33 @@ Stable Markdown can be rendered without streaming props:
 ### Rendering directives
 
 ```tsx
-import type { MarkdownDirectiveRenderer } from 'stream-markdown'
+import type { MarkdownDirectiveComponents } from 'stream-markdown'
 
-const renderDirective: MarkdownDirectiveRenderer = ({ name, children }) => {
-  if (name === 'callout') {
-    return <aside className='callout'>{children}</aside>
-  }
-  return null
+const directives: MarkdownDirectiveComponents = {
+  callout: ({ children }) => <aside className='callout'>{children}</aside>,
 }
 
-<MarkdownStream
-  content=':::callout\nContent\n:::'
-  renderDirective={renderDirective}
-/>
+<MarkdownStream content=':::callout\nContent\n:::' directives={directives} />
 ```
 
-If no renderer is provided, directive nodes resolve to `null`, keeping the tree
-stable even when directives appear in streamed chunks.
+If no matching directive renderer is provided, directive nodes resolve to
+`null`, keeping the tree stable even when directives appear in streamed chunks.
+
+### Overriding Markdown elements
+
+```tsx
+import type { MarkdownComponents } from 'stream-markdown'
+
+const components: MarkdownComponents = {
+  h1: ({ children, ...rest }) => (
+    <h1 {...rest} className='text-3xl font-bold'>
+      {children}
+    </h1>
+  ),
+}
+
+<MarkdownStream content='# Styled heading' components={components} />
+```
 
 ---
 

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import {
+  type MarkdownDirectiveComponents,
   type MarkdownDirectiveRenderer,
   MarkdownStream,
 } from '@/stream-markdown'
@@ -12,7 +13,7 @@ const DOC_SOURCE = `# Directive showcase
 :badge[Live preview]{tone=info}
 
 :::callout{variant=info title=Composable directives}
-Directives map into React in the renderer. Use **renderDirective** to supply components.
+Directives map into React in the renderer. Use the **directives** map to supply components.
 :::
 
 Paragraph with inline :kbd[Cmd + K] directive.
@@ -29,7 +30,7 @@ const DOC_CHUNKS = [
   '# Directive showcase\n\n',
   ':badge[Live preview]{tone=info}\n\n',
   ':::callout{variant=info title=Composable directives}\n',
-  'Directives map into React in the renderer. Use **renderDirective** to supply components.\n',
+  'Directives map into React in the renderer. Use the **directives** map to supply components.\n',
   ':::\n\n',
   'Paragraph with inline :kbd[Cmd + K] directive.\n\n',
   ':::callout{variant=success title=Nested content}\n',
@@ -56,41 +57,59 @@ const toTone = (value: unknown, fallback: DirectiveTone): DirectiveTone => {
   return tone === 'info' ? 'info' : fallback
 }
 
-const renderDirective: MarkdownDirectiveRenderer = ({
+const calloutDirective: MarkdownDirectiveRenderer = ({
   directiveType,
-  name,
   attributes,
   children,
 }) => {
-  if (directiveType === 'containerDirective' && name === 'callout') {
-    const variant = toTone(attributes?.variant, 'info')
-    const title = normalizeString(attributes?.title)
-    return (
-      <aside className={`callout callout--${variant}`}>
-        {title ? <p className='callout__title'>{title}</p> : null}
-        <div>{children}</div>
-      </aside>
-    )
+  if (directiveType !== 'containerDirective') {
+    return null
   }
 
-  if (
-    name === 'badge' &&
-    (directiveType === 'leafDirective' || directiveType === 'textDirective')
-  ) {
-    const tone = toTone(attributes?.tone, 'info')
-    return (
-      <span className={`badge badge--${tone}`}>
-        <span>{tone === 'success' ? 'OK' : '--'}</span>
-        <span>{children}</span>
-      </span>
-    )
+  const variant = toTone(attributes?.variant, 'info')
+  const title = normalizeString(attributes?.title)
+
+  return (
+    <aside className={`callout callout--${variant}`}>
+      {title ? <p className='callout__title'>{title}</p> : null}
+      <div>{children}</div>
+    </aside>
+  )
+}
+
+const badgeDirective: MarkdownDirectiveRenderer = ({
+  directiveType,
+  attributes,
+  children,
+}) => {
+  if (directiveType !== 'leafDirective' && directiveType !== 'textDirective') {
+    return null
   }
 
-  if (directiveType === 'textDirective' && name === 'kbd') {
-    return <kbd className='kbd'>{children}</kbd>
+  const tone = toTone(attributes?.tone, 'info')
+
+  return (
+    <span className={`badge badge--${tone}`}>
+      <span>{tone === 'success' ? 'OK' : '--'}</span>
+      <span>{children}</span>
+    </span>
+  )
+}
+
+const kbdDirective: MarkdownDirectiveRenderer = (
+  { directiveType, children },
+) => {
+  if (directiveType !== 'textDirective') {
+    return null
   }
 
-  return null
+  return <kbd className='kbd'>{children}</kbd>
+}
+
+const directives: MarkdownDirectiveComponents = {
+  callout: calloutDirective,
+  badge: badgeDirective,
+  kbd: kbdDirective,
 }
 
 export const App = () => {
@@ -143,11 +162,11 @@ export const App = () => {
           <div>
             <h1>stream-markdown · directive demo</h1>
             <p>
-              Streaming markdown renders directives through{' '}
-              <code>renderDirective</code>.
+              Streaming markdown renders directives through the{' '}
+              <code>directives</code> map.
             </p>
             <p>
-              Remove the renderer to see directives fall back to{' '}
+              Remove the directive map to see directives fall back to{' '}
               <code>null</code>.
             </p>
           </div>
@@ -173,7 +192,7 @@ export const App = () => {
               chunks={chunks}
               complete={complete}
               content={DOC_SOURCE}
-              renderDirective={renderDirective}
+              directives={directives}
             />
           </div>
         </section>

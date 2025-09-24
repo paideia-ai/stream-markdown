@@ -4,6 +4,7 @@ import { Fragment as JsxFragment, jsx, jsxs } from 'react/jsx-runtime'
 import { toHast } from 'mdast-util-to-hast'
 import type { Handler } from 'mdast-util-to-hast'
 import { toJsxRuntime } from 'hast-util-to-jsx-runtime'
+import type { Components as HastComponents } from 'hast-util-to-jsx-runtime'
 import type { Properties as HastProperties } from 'hast'
 import type { Root } from 'mdast'
 import type {
@@ -18,26 +19,6 @@ import {
   type MarkdownSession,
   type MarkdownSnapshot,
 } from './session.ts'
-
-type CommonRenderers = {
-  renderBlock?: (block: MarkdownBlock, index: number) => ReactNode
-  renderBuffer?: (block: MarkdownBlock | null) => ReactNode
-  renderDirective?: MarkdownDirectiveRenderer
-}
-
-type StreamingProps = {
-  mode: 'streaming'
-  chunks: readonly string[]
-  complete?: boolean
-  content?: string
-} & CommonRenderers
-
-type StableProps = {
-  mode?: 'stable'
-  content: string
-} & CommonRenderers
-
-export type MarkdownStreamProps = StreamingProps | StableProps
 
 type StreamingPrevState = {
   mode: 'streaming'
@@ -75,6 +56,33 @@ export type DirectiveRenderProps = {
 export type MarkdownDirectiveRenderer = (
   props: DirectiveRenderProps,
 ) => ReactNode
+
+export type MarkdownComponents = Partial<HastComponents>
+
+export type MarkdownDirectiveComponents = Record<
+  string,
+  MarkdownDirectiveRenderer
+>
+
+type CommonRenderProps = {
+  components?: MarkdownComponents
+  directives?: MarkdownDirectiveComponents
+  renderBuffer?: (block: MarkdownBlock | null) => ReactNode
+}
+
+type StreamingProps = {
+  mode: 'streaming'
+  chunks: readonly string[]
+  complete?: boolean
+  content?: string
+} & CommonRenderProps
+
+type StableProps = {
+  mode?: 'stable'
+  content: string
+} & CommonRenderProps
+
+export type MarkdownStreamProps = StreamingProps | StableProps
 
 const toArray = (chunks: readonly string[]): string[] => Array.from(chunks)
 
@@ -212,8 +220,6 @@ const directiveHandlers: Record<string, Handler> = {
 
 const defaultRenderBuffer = () => null
 
-const defaultRenderDirective: MarkdownDirectiveRenderer = () => null
-
 type DirectiveMarkerProps = {
   node: MarkdownDirectiveNode
   directiveType: MarkdownDirectiveNode['type']
@@ -222,9 +228,33 @@ type DirectiveMarkerProps = {
   children?: ReactNode
 }
 
+const renderDirectiveFromMap = (
+  props: DirectiveMarkerProps,
+  directives?: MarkdownDirectiveComponents,
+): ReactNode => {
+  const name = props.name
+  if (!name || !directives) {
+    return null
+  }
+
+  const renderer = directives[name]
+  if (!renderer) {
+    return null
+  }
+
+  return renderer({
+    node: props.node,
+    children: props.children ?? null,
+    directiveType: props.directiveType,
+    name,
+    attributes: props.attributes ?? {},
+  })
+}
+
 const renderBlockNode = (
   block: MarkdownBlock,
-  renderDirective?: MarkdownDirectiveRenderer,
+  components?: MarkdownComponents,
+  directives?: MarkdownDirectiveComponents,
 ): ReactNode => {
   const root: Root = {
     type: 'root',
@@ -239,47 +269,47 @@ const renderBlockNode = (
     return null
   }
 
-  const directiveRenderer = renderDirective ?? defaultRenderDirective
+  const mergedComponents = components
+    ? {
+      ...components,
+      DirectiveMarker: (props: DirectiveMarkerProps) =>
+        renderDirectiveFromMap(props, directives),
+    }
+    : {
+      DirectiveMarker: (props: DirectiveMarkerProps) =>
+        renderDirectiveFromMap(props, directives),
+    }
 
   return toJsxRuntime(tree, {
     Fragment: JsxFragment,
     jsx,
     jsxs,
-    components: {
-      DirectiveMarker: (
-        props: DirectiveMarkerProps,
-      ) =>
-        directiveRenderer({
-          node: props.node,
-          children: props.children ?? null,
-          directiveType: props.directiveType,
-          name: props.name,
-          attributes: props.attributes,
-        }),
-    },
+    components: mergedComponents,
   })
 }
 
 type BlockViewProps = {
   block: MarkdownBlock
-  renderDirective?: MarkdownDirectiveRenderer
+  components?: MarkdownComponents
+  directives?: MarkdownDirectiveComponents
 }
 
 const DefaultBlockView = memo(
-  function DefaultBlockView({ block, renderDirective }: BlockViewProps) {
-    const content = renderBlockNode(block, renderDirective)
+  function DefaultBlockView({ block, components, directives }: BlockViewProps) {
+    const content = renderBlockNode(block, components, directives)
     return <>{content}</>
   },
   (previous, next) =>
     previous.block === next.block &&
-    previous.renderDirective === next.renderDirective,
+    previous.components === next.components &&
+    previous.directives === next.directives,
 )
 
 export const MarkdownStream = (props: MarkdownStreamProps) => {
   const mode = props.mode ?? 'stable'
-  const customRenderBlock = props.renderBlock
   const renderBuffer = props.renderBuffer ?? defaultRenderBuffer
-  const renderDirective = props.renderDirective
+  const components = props.components
+  const directives = props.directives
 
   const sessionRef = useRef<MarkdownSession | null>(null)
   const snapshotRef = useRef<MarkdownSnapshot | null>(null)
@@ -364,15 +394,12 @@ export const MarkdownStream = (props: MarkdownStreamProps) => {
   return (
     <Fragment>
       {snapshot.committedBlocks.map((block, index) => (
-        customRenderBlock
-          ? <Fragment key={index}>{customRenderBlock(block, index)}</Fragment>
-          : (
-            <DefaultBlockView
-              key={index}
-              block={block}
-              renderDirective={renderDirective}
-            />
-          )
+        <DefaultBlockView
+          key={index}
+          block={block}
+          components={components}
+          directives={directives}
+        />
       ))}
       {renderBuffer(snapshot.bufferBlocks[0] ?? null)}
     </Fragment>
